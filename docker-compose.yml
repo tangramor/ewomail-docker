@@ -2,7 +2,7 @@ version: '3'
 services:
     ewomail:
         env_file: .env
-        image: ewomail
+        image: tangramor/ewomail
         container_name: "ewomail"
         restart: unless-stopped
         privileged: true
