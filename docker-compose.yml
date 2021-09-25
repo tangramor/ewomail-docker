@@ -1,0 +1,77 @@
+version: '3'
+services:
+    ewomail:
+        env_file: .env
+        image: ewomail
+        container_name: "ewomail"
+        restart: unless-stopped
+        privileged: true
+        ports:
+            - 25:25
+            - 109:109
+            - 110:110
+            - 143:143
+            - 465:465
+            - 587:587
+            - 993:993
+            - 995:995
+            - 7000:7000
+            - 7010:7010
+            - 8000:8000
+            - 8010:8010
+        volumes:
+            - /home/ewomail/vmail:/ewomail/mail:rw
+            - /home/ewomail/ssl/certs:/etc/ssl/certs
+            - /home/ewomail/ssl/private:/etc/ssl/private
+            - /home/ewomail/rainloop_data:/ewomail/www/rainloop/data
+            - /home/ewomail/ssl/dkim/:/ewomail/dkim
+            - /home/ewomail/logs:/var/log
+            - /sys/fs/cgroup:/sys/fs/cgroup:ro
+            - /etc/localtime:/etc/localtime
+        depends_on:
+            - mysql
+        networks:
+            - ewonet
+        extra_hosts:
+            - ${DOMAIN}:127.0.0.1
+            - mail.${DOMAIN}:127.0.0.1
+            - smtp.${DOMAIN}:127.0.0.1
+            - imap.${DOMAIN}:127.0.0.1
+        environment:
+            - DOMAIN=${DOMAIN}
+            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+
+    mysql:
+        env_file: .env
+        image: mysql:8
+        container_name: ewomail_mysql
+        security_opt:
+          - seccomp:unconfined
+        restart: unless-stopped
+        volumes:
+          - /home/ewomail/mysql:/var/lib/mysql
+          - /etc/localtime:/etc/localtime
+        networks:
+            - ewonet
+        environment:
+          - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+        healthcheck:
+            test: ["CMD", "mysqladmin", "ping"]
+        command: --default-authentication-plugin=mysql_native_password
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        container_name: ewomail_myadmin
+        restart: unless-stopped
+        volumes:
+          - /etc/localtime:/etc/localtime
+        networks:
+            - ewonet
+        environment:
+          - PMA_HOST=mysql
+        ports:
+          - 8008:80
+
+networks:
+    ewonet:
+        driver: bridge
